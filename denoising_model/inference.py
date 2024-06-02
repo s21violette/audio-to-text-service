@@ -2,14 +2,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import glob
 import os
-import argparse
 import json
 import torch
 import librosa
+import soundfile as sf
+
 from env import AttrDict
 from datasets.dataset import mag_pha_stft, mag_pha_istft
 from models.generator import MPNet
-import soundfile as sf
 
 h = None
 device = None
@@ -29,17 +29,13 @@ def scan_checkpoint(cp_dir, prefix):
     return sorted(cp_list)[-1]
 
 
-def inference(a):
+def inference(path):
     model = MPNet(h).to(device)
 
-    state_dict = load_checkpoint(a.checkpoint_file, device)
+    state_dict = load_checkpoint('denoising_model/best_ckpt/g_best', device)
     model.load_state_dict(state_dict['generator'])
 
-    os.makedirs(a.output_dir, exist_ok=True)
-
     model.eval()
-
-    path = a.input_file
 
     with torch.no_grad():
         noisy_wav, _ = librosa.load(path, h.sampling_rate)
@@ -52,19 +48,12 @@ def inference(a):
         audio_g = audio_g / norm_factor
 
         file = os.path.basename(os.path.normpath(path))
-        output_file = os.path.join(a.output_dir, file)
+        output_file = os.path.join('denoising_model', file)
         sf.write(output_file, audio_g.squeeze().cpu().numpy(), h.sampling_rate, 'PCM_16')
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--input_test_file', default='input_files/test.txt')
-    parser.add_argument('--output_dir', default='generated_files')
-    parser.add_argument('--checkpoint_file', required=True)
-    parser.add_argument('--input_file', required=True)
-    a = parser.parse_args()
-
-    config_file = os.path.join(os.path.split(a.checkpoint_file)[0], 'config.json')
+def process_audio(file_path):
+    config_file = os.path.join(os.path.split('denoising_model/best_ckpt/g_best')[0], 'config.json')
     with open(config_file) as f:
         data = f.read()
 
@@ -80,9 +69,4 @@ def main():
     else:
         device = torch.device('cpu')
 
-    inference(a)
-
-
-if __name__ == '__main__':
-    main()
-
+    inference(file_path)

@@ -1,1 +1,14 @@
+# git+https://github.com/facebookresearch/fastText
+# git+https://github.com/LahiLuk/YouTokenToMe
+# onnx
+# pynini
+# nemo_toolkit[all]
+fastapi
 torch
+torchaudio
+librosa==0.9.2
+einops
+pesq
+grpcio
+hydra-core
+omegaconf
